@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 國中小基本 1000 單字 - 每 20 單字遊戲化學習網頁</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .game-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .game-btn:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5);
+        }
+        .game-btn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+        /* Monopoly board styling */
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 6px;
+            aspect-ratio: 1 / 1;
+        }
+        .board-tile {
+            background: rgba(15, 23, 42, 0.85);
+            border: 2px solid rgba(99, 102, 241, 0.3);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            position: relative;
+            font-size: 0.75rem;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        .board-tile.active-player {
+            border-color: #f59e0b;
+            box-shadow: 0 0 15px #f59e0b;
+            background: rgba(245, 158, 11, 0.2);
+            transform: scale(1.05);
+            z-index: 10;
+        }
+        .board-tile.bought {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; }
+            .print-only { display: block !important; }
+            .glass-card { background: none !important; border: none !important; box-shadow: none !important; color: black !important; }
+        }
+        .print-only { display: none; }
+    </style>
+</head>
+<body class="p-3 md:p-6">
+    <!-- Top Navigation & Header -->
+    <header class="max-w-6xl mx-auto mb-6 no-print">
+        <div class="glass-card rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-2xl shadow-lg">
+                    🎮
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400">
+                        國中小基本 1000 單字遊戲館
+                    </h1>
+                    <p class="text-xs text-slate-400">每 20 個單字獨立一組遊戲 • 多重互動玩法 • 發音與練習</p>
+                </div>
+            </div>
+
+            <!-- Group Selector -->
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <label for="groupSelect" class="text-sm font-semibold text-indigo-300 whitespace-nowrap">
+                    <i class="fa-solid fa-layer-group mr-1"></i>選擇單字組：
+                </label>
+                <select id="groupSelect" onchange="changeGroup(this.value)" class="w-full md:w-72 bg-slate-800 border border-indigo-500/30 text-indigo-100 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </select>
+            </div>
+        </div>
+
+        <!-- Mode Pills -->
+        <div class="flex flex-wrap items-center justify-center gap-2 mt-4">
+            <button onclick="switchMode('cards')" id="btn-cards" class="mode-tab game-btn bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-indigo-600/30">
+                <i class="fa-solid fa-clone"></i> 🗂️ 20單字特訓卡
+            </button>
+            <button onclick="switchMode('monopoly')" id="btn-monopoly" class="mode-tab game-btn bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-dice"></i> 🎲 20格大富翁
+            </button>
+            <button onclick="switchMode('gacha')" id="btn-gacha" class="mode-tab game-btn bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-gift"></i> 🎁 盲盒抽卡養成
+            </button>
+            <button onclick="switchMode('quiz')" id="btn-quiz" class="mode-tab game-btn bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-square-check"></i> 📝 隨堂測驗小考
+            </button>
+            <button onclick="window.print()" class="game-btn bg-emerald-600/80 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 ml-auto">
+                <i class="fa-solid fa-print"></i> 🖨️ 列印 A4 學習單
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="max-w-6xl mx-auto no-print">
+        <!-- 1. Flashcards Mode -->
+        <section id="mode-cards" class="mode-section space-y-4">
+            <div class="glass-card rounded-2xl p-4 md:p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-indigo-300 flex items-center gap-2">
+                        <i class="fa-solid fa-volume-high"></i> 本組 20 單字清單與真人發音
+                    </h2>
+                    <span id="groupCardHeader" class="text-xs bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full font-semibold"></span>
+                </div>
+                <div id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Dynamic cards inserted by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Monopoly Mode -->
+        <section id="mode-monopoly" class="mode-section hidden space-y-4">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Board Left -->
+                <div class="lg:col-span-2 glass-card rounded-2xl p-4 md:p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-lg font-bold text-amber-400 flex items-center gap-2">
+                            <i class="fa-solid fa-chess-board"></i> 環形 20 格單字大富翁
+                        </h2>
+                        <div class="flex items-center gap-3 text-sm font-bold">
+                            <span class="text-emerald-400"><i class="fa-solid fa-coins mr-1"></i>金幣: <span id="mCoins">500</span></span>
+                            <span class="text-purple-400"><i class="fa-solid fa-rotate-right mr-1"></i>圈數: <span id="mLaps">0</span></span>
+                        </div>
+                    </div>
+                    <!-- 6x6 Grid for 20 outer tiles -->
+                    <div id="monopolyBoard" class="board-grid">
+                        <!-- Tiles generated by JS -->
+                    </div>
+                </div>
+
+                <!-- Game Console Right -->
+                <div class="glass-card rounded-2xl p-4 md:p-6 flex flex-col justify-between">
+                    <div>
+                        <div class="border-b border-slate-700 pb-3 mb-4">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">答題解鎖甩骰</span>
+                            <h3 id="mQuestionText" class="text-2xl font-bold text-indigo-200 mt-1">載入中...</h3>
+                            <p class="text-xs text-indigo-400 mt-1">請選擇正確的中文字義：</p>
+                        </div>
+                        <div id="mOptions" class="space-y-2 mb-4">
+                            <!-- Options inserted by JS -->
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 pt-4 border-t border-slate-700">
+                        <div id="mDiceStatus" class="text-center text-xs font-semibold text-slate-400">
+                            回答正確即可獲得親手甩骰機會！
+                        </div>
+                        <button id="btnRollDice" onclick="rollDice()" disabled class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-900 font-extrabold rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 text-base">
+                            <i class="fa-solid fa-dice-five text-xl"></i> 親手擲骰子移動
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Gacha Mode -->
+        <section id="mode-gacha" class="mode-section hidden space-y-4">
+            <div class="glass-card rounded-2xl p-6 text-center space-y-6">
+                <h2 class="text-2xl font-bold text-pink-400"><i class="fa-solid fa-gift mr-2"></i>盲盒扭蛋卡牌館</h2>
+                <p class="text-sm text-slate-300">答題積攢代幣，解鎖本組 20 單字對應的魔法冒險圖鑑！</p>
+                <div class="flex justify-center items-center gap-6">
+                    <div class="bg-slate-800/80 px-6 py-3 rounded-2xl border border-pink-500/30">
+                        <span class="text-xs text-slate-400 block">盲盒星幣</span>
+                        <span id="gachaCoins" class="text-2xl font-black text-amber-400">500</span>
+                    </div>
+                </div>
+                <div class="py-4">
+                    <button onclick="drawGacha()" class="game-btn px-8 py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black text-lg rounded-2xl shadow-xl shadow-pink-500/30">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> 消耗 50 金幣開箱盲盒！
+                    </button>
+                </div>
+                <div id="gachaResult" class="min-h-[140px] flex items-center justify-center">
+                    <p class="text-slate-400 text-sm">點擊上方按鈕開啟盲盒！</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Quiz Mode -->
+        <section id="mode-quiz" class="mode-section hidden space-y-4">
+            <div class="glass-card rounded-2xl p-6">
+                <div class="flex items-center justify-between border-b border-slate-700 pb-4 mb-4">
+                    <h2 class="text-lg font-bold text-emerald-400"><i class="fa-solid fa-pen-to-square mr-2"></i>本組 20 單字綜合評量</h2>
+                    <span id="quizScore" class="text-sm font-bold bg-emerald-500/20 text-emerald-300 px-4 py-1.5 rounded-full">得分：0 / 20</span>
+                </div>
+                <div id="quizContainer" class="space-y-6">
+                    <!-- Quiz questions inserted by JS -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Print View Container -->
+    <section class="print-only p-8">
+        <h1 class="text-2xl font-bold text-center mb-2">國中小基本一千字 - 隨堂單字學習單</h1>
+        <p id="printGroupTitle" class="text-center font-semibold mb-6 text-gray-700"></p>
+        <table class="w-full border-collapse border border-gray-400 text-sm">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="border border-gray-400 p-2 w-12 text-center">No.</th>
+                    <th class="border border-gray-400 p-2 text-left">英文單字 (English)</th>
+                    <th class="border border-gray-400 p-2 text-left">中文解釋 (Chinese)</th>
+                    <th class="border border-gray-400 p-2 w-36 text-center">自我檢核/畫記</th>
+                </tr>
+            </thead>
+            <tbody id="printTableBody">
+                <!-- Inserted by JS -->
+            </tbody>
+        </table>
+    </section>
+
+    <script>
+        // Full vocabulary database from PDF screenshots (1000 words parsed into 20-word groups)
+        const rawWords = [
+            // A
+            {"w":"a (an)","t":"一個、張、隻等"},{"w":"a few","t":"一些、幾個(可數)"},{"w":"a little","t":"一些、一點(不可數)"},{"w":"a lot of","t":"許多"},{"w":"able","t":"能夠...的"},{"w":"about","t":"關於；大約"},{"w":"above","t":"在...之上"},{"w":"afraid","t":"害怕的"},{"w":"after","t":"在...之後"},{"w":"afternoon","t":"下午"},{"w":"again","t":"再次"},{"w":"age","t":"年齡"},{"w":"ago","t":"以前"},{"w":"agree","t":"同意"},{"w":"air","t":"空氣"},{"w":"airplane","t":"飛機"},{"w":"airport","t":"機場"},{"w":"all","t":"全部的；所有的"},{"w":"almost","t":"幾乎"},{"w":"along","t":"沿著..."},
+            {"w":"already","t":"已經"},{"w":"also","t":"也"},{"w":"although","t":"雖然"},{"w":"always","t":"總是"},{"w":"a.m.","t":"上午"},{"w":"am","t":"是(第一人稱)"},{"w":"America","t":"美國"},{"w":"American","t":"美國的；美國人"},{"w":"and","t":"和；而且"},{"w":"angry","t":"生氣的"},{"w":"animal","t":"動物"},{"w":"another","t":"另一個"},{"w":"answer","t":"回答；答案"},{"w":"any","t":"任何的"},{"w":"anybody","t":"任何人"},{"w":"anyone","t":"任何人"},{"w":"anything","t":"任何東西"},{"w":"apartment","t":"公寓"},{"w":"appear","t":"出現"},{"w":"apple","t":"蘋果"},
+            {"w":"April","t":"四月"},{"w":"are","t":"是"},{"w":"arm","t":"手臂"},{"w":"around","t":"環繞著；周圍"},{"w":"arrive","t":"抵達；到達"},{"w":"art","t":"藝術"},{"w":"as","t":"如同...一樣"},{"w":"ask","t":"發問；詢問"},{"w":"at","t":"在..."},{"w":"August","t":"八月"},{"w":"aunt","t":"姨；姑；伯母；嬸嬸"},{"w":"autumn","t":"秋天"},{"w":"away","t":"離去；遠離"},
+            // B
+            {"w":"baby","t":"嬰兒"},{"w":"back","t":"後面的；背部；回來"},{"w":"bad","t":"壞的；差的"},{"w":"bag","t":"袋子"},{"w":"bakery","t":"麵包店"},{"w":"ball","t":"球"},{"w":"banana","t":"香蕉"},
+            {"w":"band","t":"樂團"},{"w":"bank","t":"銀行"},{"w":"baseball","t":"棒球"},{"w":"basket","t":"籃子"},{"w":"basketball","t":"籃球"},{"w":"bath","t":"洗澡；沐浴"},{"w":"bathroom","t":"浴室"},{"w":"be","t":"是"},{"w":"beach","t":"海灘"},{"w":"bear","t":"熊"},{"w":"beautiful","t":"美麗的；漂亮的"},{"w":"because","t":"因為"},{"w":"become","t":"變成；成為"},{"w":"bed","t":"床"},{"w":"bedroom","t":"臥室"},{"w":"bee","t":"蜜蜂"},{"w":"beef","t":"牛肉"},{"w":"before","t":"在...之前"},{"w":"begin","t":"開始"},{"w":"behind","t":"在...後面"},{"w":"believe","t":"相信"},{"w":"bell","t":"鈴；鐘"},{"w":"belong","t":"屬於"},
+            {"w":"below","t":"在...下方"},{"w":"belt","t":"腰帶"},{"w":"beside","t":"在...旁邊"},{"w":"between","t":"在...之間"},{"w":"bicycle","t":"腳踏車"},{"w":"big","t":"大的"},{"w":"bike","t":"腳踏車"},{"w":"bird","t":"鳥"},{"w":"birthday","t":"生日"},{"w":"bite","t":"咬"},{"w":"black","t":"黑色的"},{"w":"blackboard","t":"黑板"},{"w":"blind","t":"瞎的"},{"w":"block","t":"街區"},{"w":"blow","t":"吹"},{"w":"blue","t":"藍色的"},{"w":"boat","t":"小船"},{"w":"body","t":"身體"},{"w":"book","t":"書"},{"w":"bookstore","t":"書局"},
+            {"w":"bored","t":"感到厭倦的"},{"w":"boring","t":"令人厭煩的"},{"w":"born","t":"出生"},{"w":"borrow","t":"借入"},{"w":"boss","t":"老闆"},{"w":"both","t":"兩者(都)"},{"w":"bottle","t":"瓶子"},{"w":"bottom","t":"底部"},{"w":"bowl","t":"碗"},{"w":"box","t":"箱子；盒子"},{"w":"boy","t":"男孩"},{"w":"bread","t":"麵包"},{"w":"break","t":"打破"},{"w":"breakfast","t":"早餐"},{"w":"bridge","t":"橋"},{"w":"bright","t":"明亮的"},{"w":"bring","t":"帶來"},{"w":"brother","t":"兄弟"},{"w":"brown","t":"褐色的；棕色"},{"w":"brush","t":"刷子；刷"},
+            {"w":"build","t":"建造"},{"w":"burn","t":"燃燒；燙傷"},{"w":"bus","t":"公車"},{"w":"business","t":"生意；業務"},{"w":"businessman","t":"商人"},{"w":"busy","t":"忙碌的"},{"w":"but","t":"但是；可是"},{"w":"butter","t":"奶油"},{"w":"buy","t":"買"},{"w":"by","t":"搭乘；在...旁邊"},{"w":"bye","t":"再見"},
+            // C
+            {"w":"cake","t":"蛋糕"},{"w":"call","t":"打電話；叫"},{"w":"camera","t":"照相機"},{"w":"camp","t":"露營；營地"},{"w":"can","t":"能、會；罐頭"},{"w":"candy","t":"糖果"},{"w":"cap","t":"無邊帽；鴨舌帽"},{"w":"car","t":"汽車"},{"w":"card","t":"卡；卡片"},
+            {"w":"care","t":"照料；關心"},{"w":"careful","t":"小心的"},{"w":"carry","t":"攜帶；搬運"},{"w":"case","t":"情形；箱子"},{"w":"cat","t":"貓"},{"w":"catch","t":"接住；捕捉"},{"w":"celebrate","t":"慶祝"},{"w":"cell phone","t":"手機"},{"w":"cent","t":"一分錢"},{"w":"center","t":"中心"},{"w":"chair","t":"椅子"},{"w":"chalk","t":"粉筆"},{"w":"chance","t":"機會"},{"w":"change","t":"變化；零錢；改變"},{"w":"cheap","t":"便宜的"},{"w":"cheat","t":"欺騙；作弊"},{"w":"check","t":"支票；檢查"},{"w":"cheer","t":"歡呼"},{"w":"cheese","t":"乳酪"},{"w":"chicken","t":"雞；雞肉"},{"w":"child","t":"小孩"},
+            {"w":"China","t":"中國"},{"w":"Chinese","t":"中國的；中文"},{"w":"chocolate","t":"巧克力"},{"w":"chopsticks","t":"筷子"},{"w":"Christmas","t":"聖誕節"},{"w":"church","t":"教堂"},{"w":"circle","t":"圓圈"},{"w":"city","t":"城市"},{"w":"class","t":"班級；上課"},{"w":"classmate","t":"同班同學"},{"w":"classroom","t":"教室"},{"w":"clean","t":"清潔的；打掃"},{"w":"clear","t":"清楚的；清澈的"},{"w":"climb","t":"攀爬；攀登"},{"w":"clock","t":"時鐘"},{"w":"close","t":"關閉；靠近的"},{"w":"clothes","t":"衣服"},{"w":"cloudy","t":"多雲的"},{"w":"club","t":"俱樂部"},{"w":"coat","t":"外套"},
+            {"w":"coffee","t":"咖啡"},{"w":"Coke","t":"可口可樂"},{"w":"cold","t":"寒冷的；感冒"},{"w":"collect","t":"收集"},{"w":"color","t":"顏色"},{"w":"come","t":"來；到來"},{"w":"comfortable","t":"舒服的"},{"w":"comic","t":"漫畫"},{"w":"common","t":"普通的；共同的"},{"w":"computer","t":"電腦"},{"w":"convenient","t":"便利的"},{"w":"cook","t":"廚師；烹調"},{"w":"cookie","t":"餅乾"},{"w":"cool","t":"涼爽的；酷的"},{"w":"copy","t":"副本；複製"},{"w":"correct","t":"正確的"},{"w":"cost","t":"費用；花費"},{"w":"couch","t":"長沙發"},{"w":"could","t":"can的過去式"},{"w":"count","t":"數"},
+            {"w":"country","t":"國家；鄉村"},{"w":"cousin","t":"堂/表兄弟姊妹"},{"w":"cover","t":"涵蓋；蓋子"},{"w":"cow","t":"母牛"},{"w":"crazy","t":"發瘋的"},{"w":"cross","t":"十字架；穿越"},{"w":"cry","t":"哭泣；喊叫"},{"w":"cup","t":"茶杯"},{"w":"cut","t":"切割；剪"},{"w":"cute","t":"可愛的"},
+            // D
+            {"w":"dad","t":"爸爸"},{"w":"daddy","t":"爸爸"},{"w":"dance","t":"跳舞"},{"w":"dangerous","t":"危險的"},{"w":"dark","t":"黑暗的"},{"w":"date","t":"日期；約會"},{"w":"daughter","t":"女兒"},{"w":"day","t":"白天；一日"},{"w":"dead","t":"死的"},{"w":"dear","t":"親愛的"},
+            {"w":"December","t":"十二月"},{"w":"decide","t":"決定"},{"w":"delicious","t":"美味的；好吃的"},{"w":"department store","t":"百貨公司"},{"w":"desk","t":"書桌；辦公桌"},{"w":"dictionary","t":"字詞；字典"},{"w":"did","t":"do的過去式"},{"w":"die","t":"死亡"},{"w":"different","t":"不同的"},{"w":"difficult","t":"困難的"},{"w":"dig","t":"挖掘"},{"w":"dining room","t":"餐廳"},{"w":"dinner","t":"晚餐"},{"w":"dirty","t":"髒亂的"},{"w":"dish","t":"盤子；菜餚"},{"w":"do","t":"做"},{"w":"doctor","t":"醫生；博士"},{"w":"does","t":"do的第三人稱單數"},{"w":"dog","t":"狗"},{"w":"doll","t":"洋娃娃"},
+            {"w":"dollar","t":"元"},{"w":"done","t":"do的過去分詞"},{"w":"door","t":"門"},{"w":"down","t":"向下"},{"w":"dozen","t":"一打；十二個"},{"w":"draw","t":"畫圖；拉"},{"w":"dream","t":"夢想；做夢"},{"w":"dress","t":"洋裝；服裝"},{"w":"drink","t":"喝；飲料"},{"w":"drive","t":"駕駛"},{"w":"driver","t":"司機"},{"w":"drop","t":"滴；掉落"},{"w":"dry","t":"乾燥的"},{"w":"during","t":"在...期間"},
+            // E
+            {"w":"each","t":"每個"},{"w":"ear","t":"耳朵"},{"w":"early","t":"早的"},{"w":"earth","t":"地球"},{"w":"east","t":"東方"},{"w":"easy","t":"容易的"},
+            {"w":"eat","t":"吃"},{"w":"egg","t":"蛋"},{"w":"eight","t":"八"},{"w":"eighteen","t":"十八"},{"w":"eighth","t":"第八"},{"w":"eighty","t":"八十"},{"w":"either","t":"兩者之一；也"},{"w":"elementary school","t":"小學"},{"w":"elephant","t":"大象"},{"w":"eleven","t":"十一"},{"w":"else","t":"其他；其他的"},{"w":"e-mail","t":"電子郵件"},{"w":"end","t":"結束；結局"},{"w":"English","t":"英語；英國的"},{"w":"enjoy","t":"享受"},{"w":"enough","t":"充足的；足夠的"},{"w":"enter","t":"進入；輸入"},{"w":"eraser","t":"橡皮擦；板擦"},{"w":"eve","t":"前夕"},
+            {"w":"even","t":"甚至"},{"w":"evening","t":"傍晚；夜晚"},{"w":"ever","t":"曾經"},{"w":"every","t":"每一個"},{"w":"everybody","t":"每個人"},{"w":"everyone","t":"每個人"},{"w":"everything","t":"一切事物"},{"w":"example","t":"例子；榜樣"},{"w":"excellent","t":"極好的；優秀的"},{"w":"except","t":"除了...之外"},{"w":"excited","t":"感到興奮的"},{"w":"exciting","t":"令人興奮的"},{"w":"excuse","t":"原諒；藉口"},{"w":"exercise","t":"運動；練習"},{"w":"expensive","t":"昂貴的"},{"w":"experience","t":"經驗"},{"w":"eye","t":"眼睛"},
+            // F
+            {"w":"face","t":"臉；面對"},{"w":"fact","t":"事實"},{"w":"factory","t":"工廠"},
+            {"w":"fall","t":"落下；秋天"},{"w":"family","t":"家庭；家人"},{"w":"famous","t":"著名的；有名的"},{"w":"fan","t":"扇子；迷"},{"w":"farm","t":"農場"},{"w":"farmer","t":"農夫"},{"w":"fast","t":"快的；迅速地"},{"w":"fat","t":"肥胖的"},{"w":"father","t":"父親"},{"w":"favorite","t":"最喜愛的"},{"w":"February","t":"二月"},{"w":"feel","t":"感覺"},{"w":"festival","t":"節日；慶典"},{"w":"few","t":"很少的"},{"w":"fifteen","t":"十五"},{"w":"fifth","t":"第五"},{"w":"fifty","t":"五十"},{"w":"fill","t":"裝滿；充滿"},
+            {"w":"finally","t":"終於"},{"w":"find","t":"發現；獲得"},{"w":"fine","t":"很好的；美好的"},{"w":"finger","t":"手指"},{"w":"finish","t":"完成"},{"w":"fire","t":"火"},{"w":"first","t":"第一"},{"w":"fish","t":"魚；魚肉"},{"w":"fisherman","t":"漁夫"},{"w":"five","t":"五"},{"w":"fix","t":"修理"},{"w":"floor","t":"地板；樓層"},{"w":"flower","t":"花"},{"w":"fly","t":"飛；蒼蠅"},{"w":"follow","t":"跟隨；遵循"},{"w":"food","t":"食物"},{"w":"foot","t":"腳(複數feet)"},{"w":"for","t":"為了；對...；給..."},{"w":"foreign","t":"外國的"},{"w":"foreigner","t":"外國人"},
+            {"w":"forget","t":"忘記"},{"w":"fork","t":"叉子"},{"w":"forty","t":"四十"},{"w":"four","t":"四"},{"w":"fourteen","t":"十四"},{"w":"fourth","t":"第四"},{"w":"free","t":"自由的；免費的"},{"w":"fresh","t":"新鮮的"},{"w":"Friday","t":"星期五"},{"w":"friend","t":"朋友"},{"w":"friendly","t":"友善的"},{"w":"from","t":"由...；從..."},{"w":"front","t":"前面"},{"w":"fruit","t":"水果"},{"w":"full","t":"充滿的"},{"w":"fun","t":"樂趣"},{"w":"funny","t":"滑稽的；可笑的"},{"w":"future","t":"未來；將來"},
+            // G
+            {"w":"game","t":"遊戲；競賽"},{"w":"garbage","t":"垃圾"},
+            {"w":"garden","t":"花園"},{"w":"gas","t":"汽油；瓦斯"},{"w":"get","t":"收到；獲得；到達"},{"w":"gift","t":"禮物"},{"w":"girl","t":"女孩"},{"w":"give","t":"給予"},{"w":"glad","t":"高興的"},{"w":"glass","t":"玻璃；玻璃杯"},{"w":"glasses","t":"眼鏡"},{"w":"glove","t":"手套"},{"w":"go","t":"去"},{"w":"goat","t":"山羊"},{"w":"good","t":"良好的；優秀的"},{"w":"good-bye","t":"再見"},{"w":"grade","t":"年級；分數"},{"w":"grandfather","t":"祖父"},{"w":"grandma","t":"祖母"},{"w":"grandmother","t":"祖母"},{"w":"grandpa","t":"祖父"},
+            {"w":"grass","t":"草"},{"w":"gray","t":"灰色的"},{"w":"great","t":"偉大的；極好的"},{"w":"green","t":"綠色的"},{"w":"ground","t":"地面"},{"w":"group","t":"團體；群"},{"w":"grow","t":"種植；生長"},{"w":"guess","t":"猜測；推測"},
+            // H
+            {"w":"habit","t":"習慣"},{"w":"had","t":"have的過去式"},{"w":"hair","t":"頭髮；毛髮"},{"w":"half","t":"一半"},{"w":"ham","t":"火腿"},{"w":"hamburger","t":"漢堡"},{"w":"hand","t":"手"},{"w":"handsome","t":"英俊的"},{"w":"happen","t":"發生"},{"w":"happy","t":"快樂的"},{"w":"hard","t":"困難的；堅硬的"},{"w":"hard-working","t":"勤勉的"},
+            {"w":"has","t":"have的第三人稱單數"},{"w":"hat","t":"帽子"},{"w":"hate","t":"憎恨；厭惡"},{"w":"have","t":"有；用(餐)；使"},{"w":"he","t":"他"},{"w":"head","t":"頭部"},{"w":"headache","t":"頭痛"},{"w":"health","t":"健康"},{"w":"healthy","t":"健康的"},{"w":"hear","t":"聽見；聽說"},{"w":"heart","t":"心臟；心"},{"w":"heat","t":"熱"},{"w":"heavy","t":"重的"},{"w":"hello","t":"嗨；哈囉"},{"w":"help","t":"幫助"},{"w":"helpful","t":"有幫助的"},{"w":"her","t":"她；她的"},{"w":"here","t":"在這裡"},{"w":"hers","t":"她的東西"},{"w":"herself","t":"她自己"},
+            {"w":"hi","t":"嗨"},{"w":"hide","t":"隱藏"},{"w":"high","t":"高的"},{"w":"hill","t":"小山；山丘"},{"w":"him","t":"他"},{"w":"himself","t":"他自己"},{"w":"his","t":"他的；他的東西"},{"w":"history","t":"歷史"},{"w":"hit","t":"打；擊中"},{"w":"hobby","t":"嗜好"},{"w":"hold","t":"握住；抓住；舉行"},{"w":"holiday","t":"節日；假日"},{"w":"home","t":"家"},{"w":"homework","t":"家庭作業"},{"w":"honest","t":"誠實的"},{"w":"hope","t":"希望"},{"w":"horse","t":"馬"},{"w":"hospital","t":"醫院"},{"w":"hot","t":"熱的"},{"w":"hot dog","t":"熱狗"},
+            {"w":"hotel","t":"旅館"},{"w":"hour","t":"小時"},{"w":"house","t":"房子"},{"w":"how","t":"怎樣；如何"},{"w":"however","t":"然而"},{"w":"hundred","t":"百"},{"w":"hungry","t":"飢餓的"},{"w":"hurry","t":"匆忙；急忙"},{"w":"hurt","t":"受傷；疼痛"},{"w":"husband","t":"丈夫"},
+            // I, J, K
+            {"w":"I","t":"我"},{"w":"ice","t":"冰"},{"w":"ice cream","t":"冰淇淋"},{"w":"idea","t":"主意；想法"},{"w":"if","t":"如果；假使"},{"w":"important","t":"重要的"},{"w":"in","t":"在...裡面"},{"w":"inside","t":"在...內部"},{"w":"interest","t":"興趣；使感興趣"},{"w":"interested","t":"感興趣的"},
+            {"w":"interesting","t":"令人覺得有趣的"},{"w":"Internet","t":"網際網路"},{"w":"into","t":"進入"},{"w":"is","t":"是"},{"w":"island","t":"島嶼"},{"w":"it","t":"它"},{"w":"its","t":"它的"},{"w":"itself","t":"它自己"},{"w":"jacket","t":"夾克"},{"w":"January","t":"一月"},{"w":"jeans","t":"牛仔褲"},{"w":"job","t":"工作"},{"w":"jog","t":"慢跑"},{"w":"join","t":"參加"},{"w":"joy","t":"歡喜"},{"w":"juice","t":"果汁"},{"w":"July","t":"七月"},{"w":"jump","t":"跳躍"},{"w":"June","t":"六月"},{"w":"junior high school","t":"國中"},
+            {"w":"just","t":"剛剛；適才"},{"w":"keep","t":"保留；保持"},{"w":"key","t":"鑰匙"},{"w":"kick","t":"踢"},{"w":"kid","t":"小孩"},{"w":"kill","t":"殺"},{"w":"kilogram","t":"公斤"},{"w":"kind","t":"親切的；種類"},{"w":"king","t":"國王"},{"w":"kiss","t":"吻"},{"w":"kitchen","t":"廚房"},{"w":"kite","t":"風箏"},{"w":"knee","t":"膝蓋"},{"w":"knife","t":"小刀"},{"w":"knock","t":"敲"},{"w":"know","t":"知道；認識"},{"w":"knowledge","t":"知識"},{"w":"lake","t":"湖"},{"w":"lamp","t":"燈"},{"w":"land","t":"陸地；土地"},
+            // L, M
+            {"w":"language","t":"語言"},{"w":"large","t":"大的"},{"w":"last","t":"最後的；上個..."},{"w":"late","t":"遲的；晚的"},{"w":"later","t":"以後"},{"w":"laugh","t":"笑"},{"w":"lazy","t":"懶惰的"},{"w":"lead","t":"引導"},{"w":"leader","t":"領導者"},{"w":"learn","t":"學習"},{"w":"least","t":"最少的"},{"w":"leave","t":"離開"},{"w":"left","t":"左邊；向左"},{"w":"leg","t":"腿"},{"w":"lemon","t":"檸檬"},{"w":"lend","t":"借出"},{"w":"less","t":"較少的"},{"w":"lesson","t":"課；教訓"},{"w":"let","t":"允許；讓"},{"w":"letter","t":"信；字母"},
+            {"w":"library","t":"圖書館"},{"w":"lie","t":"說謊；躺"},{"w":"life","t":"生命；生活"},{"w":"light","t":"燈；光；輕的"},{"w":"like","t":"喜歡；像"},{"w":"line","t":"線；行"},{"w":"lion","t":"獅子"},{"w":"lip","t":"嘴唇"},{"w":"list","t":"一覽表；名單"},{"w":"listen","t":"聽"},{"w":"little","t":"小的；少許"},{"w":"live","t":"居住；活的"},{"w":"living room","t":"客廳"},{"w":"lonely","t":"孤獨的；寂寞的"},{"w":"long","t":"長的"},{"w":"look","t":"看；看起來"},{"w":"lose","t":"失去；輸"},{"w":"loud","t":"大聲的"},{"w":"love","t":"愛情；愛"},{"w":"low","t":"低的"},
+            {"w":"lucky","t":"幸運的"},{"w":"lunch","t":"午餐"},{"w":"machine","t":"機器"},{"w":"magic","t":"魔法"},{"w":"mail","t":"郵件"},{"w":"mail carrier","t":"郵差"},{"w":"mailman","t":"郵差"},{"w":"make","t":"製作；使"},{"w":"man","t":"男人"},{"w":"many","t":"許多的"},{"w":"map","t":"地圖"},{"w":"March","t":"三月"},{"w":"mark","t":"記號"},{"w":"market","t":"市場"},{"w":"married","t":"已婚的"},{"w":"math","t":"數學"},{"w":"matter","t":"事情；問題"},{"w":"May","t":"五月"},{"w":"may","t":"可以；可能"},{"w":"maybe","t":"或許"},
+            // M, N
+            {"w":"me","t":"我"},{"w":"meal","t":"一餐"},{"w":"mean","t":"意指；意思"},{"w":"meat","t":"肉"},{"w":"medicine","t":"藥"},{"w":"medium","t":"中等的"},{"w":"meet","t":"遇見；會面"},{"w":"meeting","t":"會議"},{"w":"menu","t":"菜單"},{"w":"might","t":"may的過去式"},{"w":"mile","t":"哩"},{"w":"milk","t":"牛奶"},{"w":"million","t":"百萬"},{"w":"mind","t":"心；精神；介意"},{"w":"mine","t":"我的東西"},{"w":"minute","t":"分鐘"},{"w":"Miss","t":"小姐"},{"w":"miss","t":"沒趕上；想念"},{"w":"mistake","t":"錯誤"},{"w":"modern","t":"現代的"},
+            {"w":"mom","t":"媽媽"},{"w":"moment","t":"片刻；會兒"},{"w":"mommy","t":"媽咪"},{"w":"Monday","t":"星期一"},{"w":"money","t":"錢"},{"w":"monkey","t":"猴子"},{"w":"month","t":"月份"},{"w":"moon","t":"月亮"},{"w":"more","t":"更多的"},{"w":"morning","t":"早晨"},{"w":"most","t":"大多數的；最多的"},{"w":"mother","t":"母親"},{"w":"motorcycle","t":"摩托車"},{"w":"mountain","t":"山"},{"w":"mouse","t":"鼠"},{"w":"mouth","t":"嘴"},{"w":"move","t":"移動；搬家"},{"w":"movie","t":"電影"},{"w":"Mr.","t":"先生"},{"w":"Mrs.","t":"太太"},
+            {"w":"Ms.","t":"女士"},{"w":"much","t":"許多的"},{"w":"museum","t":"博物館"},{"w":"music","t":"音樂"},{"w":"must","t":"必須"},{"w":"my","t":"我的"},{"w":"myself","t":"我自己"},{"w":"name","t":"名字"},{"w":"national","t":"國家的；全國性的"},{"w":"near","t":"在...附近"},{"w":"neck","t":"脖子"},{"w":"need","t":"需要"},{"w":"never","t":"未曾；絕不..."},{"w":"new","t":"新的"},{"w":"news","t":"消息；新聞"},{"w":"next","t":"下一個的"},{"w":"nice","t":"好的"},{"w":"night","t":"晚上"},{"w":"nine","t":"九"},{"w":"nineteen","t":"十九"},
+            // N, O, P
+            {"w":"ninety","t":"九十"},{"w":"ninth","t":"第九"},{"w":"no","t":"不"},{"w":"nobody","t":"沒有人"},{"w":"nod","t":"點頭"},{"w":"noise","t":"噪音；吵雜聲"},{"w":"noodle","t":"麵條"},{"w":"noon","t":"中午"},{"w":"north","t":"北方"},{"w":"nose","t":"鼻子"},{"w":"not","t":"不"},{"w":"notebook","t":"筆記本"},{"w":"nothing","t":"無事；無物"},{"w":"notice","t":"注意"},{"w":"November","t":"十一月"},{"w":"now","t":"現在"},{"w":"number","t":"數字；...號"},{"w":"nurse","t":"護士"},{"w":"o'clock","t":"...點鐘"},{"w":"October","t":"十月"},
+            {"w":"of","t":"...的"},{"w":"off","t":"離開；脫掉"},{"w":"office","t":"辦公室"},{"w":"officer","t":"警官；官員"},{"w":"often","t":"經常"},{"w":"oil","t":"油"},{"w":"OK","t":"好；可以"},{"w":"old","t":"年老的；舊的"},{"w":"on","t":"在...之上"},{"w":"once","t":"一次；曾經"},{"w":"one","t":"單一；一個"},{"w":"only","t":"唯一的"},{"w":"open","t":"打開的"},{"w":"or","t":"或者；否則"},{"w":"orange","t":"橘子；橙色的"},{"w":"order","t":"命令；點餐"},{"w":"other","t":"其他的"},{"w":"our","t":"我們的"},{"w":"ours","t":"我們的東西"},{"w":"ourselves","t":"我們自己"},
+            {"w":"out","t":"在外面；向外"},{"w":"outside","t":"在戶外"},{"w":"over","t":"在...上方；超過"},{"w":"own","t":"自己的"},{"w":"pack","t":"一包；包裹"},{"w":"package","t":"包裹"},{"w":"page","t":"頁"},{"w":"paint","t":"油漆；繪畫"},{"w":"pair","t":"一對；一雙"},{"w":"pants","t":"褲子"},{"w":"paper","t":"紙"},{"w":"parent","t":"雙親之一"},{"w":"park","t":"公園；停車"},{"w":"part","t":"部分"},{"w":"party","t":"聚會"},{"w":"pass","t":"通過；經過"},{"w":"past","t":"過去的"},{"w":"PE","t":"體育"},{"w":"pen","t":"鋼筆；原子筆"},{"w":"pencil","t":"鉛筆"},
+            {"w":"people","t":"人們"},{"w":"perhaps","t":"也許"},{"w":"person","t":"人"},{"w":"pet","t":"寵物"},{"w":"phone","t":"電話"},{"w":"piano","t":"鋼琴"},{"w":"pick","t":"挑選；採摘"},{"w":"picnic","t":"野餐"},{"w":"picture","t":"圖畫；照片"},{"w":"pie","t":"派；餡餅"},{"w":"piece","t":"片；張；塊"},{"w":"pig","t":"豬"},{"w":"pink","t":"粉紅色的"},{"w":"pizza","t":"比薩"},{"w":"place","t":"場所；地點"},{"w":"plan","t":"計畫"},{"w":"plane","t":"飛機"},{"w":"play","t":"玩；扮演"},{"w":"player","t":"選手；演奏者"},{"w":"playground","t":"操場；遊樂場"},
+            {"w":"please","t":"請"},{"w":"p.m.","t":"下午"},{"w":"point","t":"點；分數"},{"w":"police","t":"警察"},{"w":"polite","t":"有禮貌的"},{"w":"poor","t":"貧窮的；可憐的"},{"w":"popcorn","t":"爆米花"},{"w":"popular","t":"受歡迎的"},{"w":"pork","t":"豬肉"},{"w":"possible","t":"可能的"},{"w":"post office","t":"郵局"},{"w":"postcard","t":"明信片"},{"w":"pound","t":"磅；英鎊"},{"w":"practice","t":"練習"},{"w":"prepare","t":"準備"},{"w":"present","t":"禮物"},{"w":"pretty","t":"漂亮的"},{"w":"price","t":"價格"},{"w":"problem","t":"問題"},{"w":"program","t":"節目；計畫"},
+            // Q, R, S
+            {"w":"proud","t":"驕傲的；光榮的"},{"w":"public","t":"公共的"},{"w":"pull","t":"拉"},{"w":"purple","t":"紫色的"},{"w":"push","t":"推"},{"w":"put","t":"放置"},{"w":"queen","t":"女王"},{"w":"question","t":"問題"},{"w":"quick","t":"迅速的"},{"w":"quiet","t":"安靜的"},{"w":"quite","t":"相當"},{"w":"rabbit","t":"兔子"},{"w":"radio","t":"收音機"},{"w":"railway","t":"鐵路"},{"w":"rain","t":"下雨"},{"w":"rainbow","t":"彩虹"},{"w":"rainy","t":"下雨的"},{"w":"read","t":"閱讀"},{"w":"ready","t":"準備好的"},{"w":"real","t":"真實的"},
+            {"w":"really","t":"真地"},{"w":"red","t":"紅色的"},{"w":"refrigerator","t":"冰箱"},{"w":"remember","t":"記得"},{"w":"repeat","t":"重複"},{"w":"rest","t":"休息"},{"w":"restaurant","t":"餐館；餐廳"},{"w":"restroom","t":"洗手間"},{"w":"rice","t":"米飯"},{"w":"rich","t":"富裕的"},{"w":"ride","t":"騎；搭乘"},{"w":"right","t":"對的；右邊"},{"w":"ring","t":"戒指；鈴響"},{"w":"river","t":"河流"},{"w":"road","t":"道路"},{"w":"ROC","t":"中華民國"},{"w":"room","t":"房間；空間"},{"w":"rose","t":"玫瑰"},{"w":"round","t":"圓的"},{"w":"rule","t":"規則"},
+            {"w":"ruler","t":"尺"},{"w":"run","t":"跑"},{"w":"sad","t":"悲傷的"},{"w":"safe","t":"安全的"},{"w":"salad","t":"沙拉"},{"w":"sale","t":"拍賣"},{"w":"salt","t":"鹽"},{"w":"same","t":"相同的"},{"w":"sandwich","t":"三明治"},{"w":"Saturday","t":"星期六"},{"w":"save","t":"拯救；節省"},{"w":"say","t":"說"},{"w":"school","t":"學校"},{"w":"sea","t":"大海"},{"w":"season","t":"季節"},{"w":"seat","t":"座位"},{"w":"second","t":"第二；秒"},{"w":"see","t":"看見"},{"w":"seldom","t":"很少"},{"w":"sell","t":"賣"},
+            {"w":"send","t":"發送；寄"},{"w":"senior high school","t":"高中"},{"w":"sentence","t":"句子"},{"w":"September","t":"九月"},{"w":"serious","t":"嚴肅的；嚴重的"},{"w":"seven","t":"七"},{"w":"seventeen","t":"十七"},{"w":"seventh","t":"第七"},{"w":"seventy","t":"七十"},{"w":"several","t":"數個的"},{"w":"shall","t":"將要"},{"w":"shape","t":"形狀"},{"w":"share","t":"分享"},{"w":"she","t":"她"},{"w":"sheep","t":"羊"},{"w":"ship","t":"船"},{"w":"shirt","t":"襯衫"},{"w":"shoe","t":"鞋子"},{"w":"shop","t":"商店"},{"w":"shopkeeper","t":"店主"},
+            // S, T
+            {"w":"short","t":"短的；矮的"},{"w":"should","t":"應該"},{"w":"shoulder","t":"肩膀"},{"w":"show","t":"展示；表演"},{"w":"shy","t":"害羞的"},{"w":"sick","t":"生病的"},{"w":"side","t":"側面；旁邊"},{"w":"sidewalk","t":"人行道"},{"w":"simple","t":"簡單的"},{"w":"since","t":"自從"},{"w":"sing","t":"唱歌"},{"w":"singer","t":"歌手"},{"w":"sir","t":"先生"},{"w":"sister","t":"姊妹"},{"w":"sit","t":"坐"},{"w":"six","t":"六"},{"w":"sixteen","t":"十六"},{"w":"sixth","t":"第六"},{"w":"sixty","t":"六十"},{"w":"size","t":"尺寸"},
+            {"w":"skirt","t":"裙子"},{"w":"sky","t":"天空"},{"w":"sleep","t":"睡覺"},{"w":"slow","t":"慢的"},{"w":"small","t":"小的"},{"w":"smart","t":"聰明的"},{"w":"smell","t":"氣味；聞"},{"w":"smile","t":"微笑"},{"w":"smoke","t":"煙；抽煙"},{"w":"snack","t":"點心"},{"w":"snake","t":"蛇"},{"w":"snow","t":"雪；下雪"},{"w":"so","t":"如此；所以"},{"w":"sock","t":"襪子"},{"w":"sofa","t":"沙發"},{"w":"some","t":"一些"},{"w":"somebody","t":"某人"},{"w":"someone","t":"某人"},{"w":"something","t":"某物；某事"},{"w":"sometimes","t":"有時"},
+            {"w":"somewhere","t":"在某處"},{"w":"son","t":"兒子"},{"w":"song","t":"歌曲"},{"w":"soon","t":"不久；很快"},{"w":"sorry","t":"抱歉的"},{"w":"sound","t":"聲音；聽起來"},{"w":"soup","t":"湯"},{"w":"south","t":"南方"},{"w":"space","t":"空間；太空"},{"w":"speak","t":"說話"},{"w":"special","t":"特別的"},{"w":"spell","t":"拼寫"},{"w":"spend","t":"花費(時間)"},{"w":"spoon","t":"湯匙"},{"w":"sport","t":"運動"},{"w":"spring","t":"春天"},{"w":"square","t":"正方形；廣場"},{"w":"stand","t":"站立"},{"w":"star","t":"星星"},{"w":"start","t":"開始"},
+            {"w":"station","t":"車站"},{"w":"stay","t":"停留；保持"},{"w":"steak","t":"牛排"},{"w":"still","t":"仍然"},{"w":"stomach","t":"胃"},{"w":"stop","t":"停止"},{"w":"store","t":"店家"},{"w":"story","t":"故事"},{"w":"strange","t":"奇怪的；陌生的"},{"w":"stranger","t":"陌生人"},{"w":"street","t":"街道"},{"w":"strong","t":"強壯的"},{"w":"student","t":"學生"},{"w":"study","t":"學習；研讀"},{"w":"stupid","t":"愚蠢的"},{"w":"successful","t":"成功的"},{"w":"sugar","t":"糖"},{"w":"summer","t":"夏天"},{"w":"sun","t":"太陽"},{"w":"Sunday","t":"星期日"},
+            // T, U, V, W, Y, Z
+            {"w":"sunny","t":"晴朗的"},{"w":"supermarket","t":"超級市場"},{"w":"sure","t":"確定的"},{"w":"surprise","t":"使驚訝；驚喜"},{"w":"surprised","t":"感到驚訝的"},{"w":"sweater","t":"毛線衣"},{"w":"sweet","t":"甜的"},{"w":"swim","t":"游泳"},{"w":"table","t":"桌子"},{"w":"Taiwan","t":"台灣"},{"w":"take","t":"拿；花費；搭乘"},{"w":"talk","t":"談話"},{"w":"tall","t":"高的"},{"w":"tape","t":"錄音帶；膠帶"},{"w":"taste","t":"味道；品嚐"},{"w":"taxi","t":"計程車"},{"w":"tea","t":"茶"},{"w":"teach","t":"教學"},{"w":"teacher","t":"老師"},{"w":"team","t":"團隊"},
+            {"w":"teenager","t":"13-19歲青少年"},{"w":"telephone","t":"電話"},{"w":"television","t":"電視"},{"w":"tell","t":"訴說；告訴"},{"w":"ten","t":"十"},{"w":"tennis","t":"網球"},{"w":"tenth","t":"第十"},{"w":"test","t":"測驗"},{"w":"than","t":"比"},{"w":"thank","t":"感謝"},{"w":"that","t":"那個"},{"w":"the","t":"這個"},{"w":"theater","t":"劇場；戲院"},{"w":"their","t":"他們的"},{"w":"theirs","t":"他們的東西"},{"w":"them","t":"他們"},{"w":"themselves","t":"他們自己"},{"w":"then","t":"然後；那麼"},{"w":"there","t":"在那裡"},{"w":"these","t":"這些"},
+            {"w":"they","t":"他們"},{"w":"thin","t":"薄的；瘦的"},{"w":"thing","t":"事物"},{"w":"think","t":"想"},{"w":"third","t":"第三"},{"w":"thirsty","t":"口渴的"},{"w":"thirteen","t":"十三"},{"w":"thirty","t":"三十"},{"w":"this","t":"這個"},{"w":"those","t":"那些"},{"w":"though","t":"雖然"},{"w":"thousand","t":"千"},{"w":"three","t":"三"},{"w":"Thursday","t":"星期四"},{"w":"ticket","t":"車票；門票"},{"w":"tiger","t":"老虎"},{"w":"time","t":"時間；次數"},{"w":"tired","t":"感到疲倦的"},{"w":"to","t":"到..."},{"w":"today","t":"今天"},
+            {"w":"together","t":"一起"},{"w":"tomato","t":"番茄"},{"w":"tomorrow","t":"明天"},{"w":"tonight","t":"今晚"},{"w":"too","t":"太；也"},{"w":"tooth","t":"牙齒(複數teeth)"},{"w":"touch","t":"觸摸"},{"w":"towel","t":"毛巾"},{"w":"town","t":"城鎮"},{"w":"toy","t":"玩具"},{"w":"traffic","t":"交通"},{"w":"train","t":"火車；訓練"},{"w":"tree","t":"樹木"},{"w":"trip","t":"旅行"},{"w":"trouble","t":"麻煩"},{"w":"truck","t":"卡車"},{"w":"true","t":"真實的"},{"w":"try","t":"嘗試"},{"w":"Tuesday","t":"星期二"},{"w":"turn","t":"轉變；輪流"},
+            {"w":"TV","t":"電視"},{"w":"twelve","t":"十二"},{"w":"twenty","t":"二十"},{"w":"two","t":"二"},{"w":"typhoon","t":"颱風"},{"w":"umbrella","t":"雨傘"},{"w":"uncle","t":"叔伯舅姑丈"},{"w":"under","t":"在...之下"},{"w":"understand","t":"懂得"},{"w":"unhappy","t":"不快樂的"},{"w":"uniform","t":"制服"},{"w":"until","t":"直到..."},{"w":"up","t":"向上"},{"w":"us","t":"我們"},{"w":"USA","t":"美國"},{"w":"use","t":"使用"},{"w":"useful","t":"有用的"},{"w":"usually","t":"通常"},{"w":"vacation","t":"假期"},{"w":"vegetable","t":"蔬菜"},
+            {"w":"very","t":"非常"},{"w":"video","t":"影片；錄影帶"},{"w":"visit","t":"拜訪"},{"w":"voice","t":"聲音"},{"w":"wait","t":"等待"},{"w":"waiter","t":"服務生"},{"w":"waitress","t":"女服務生"},{"w":"wake","t":"醒來"},{"w":"walk","t":"步行"},{"w":"wall","t":"牆壁"},{"w":"want","t":"想要"},{"w":"warm","t":"溫暖的"},{"w":"was","t":"be動詞過去式"},{"w":"wash","t":"洗"},{"w":"watch","t":"觀看；手錶"},{"w":"water","t":"水"},{"w":"way","t":"道路；方法"},{"w":"we","t":"我們"},{"w":"weak","t":"虛弱的"},
+            {"w":"wear","t":"穿著"},{"w":"weather","t":"天氣"},{"w":"Wednesday","t":"星期三"},{"w":"week","t":"週；星期"},{"w":"weekend","t":"週末"},{"w":"welcome","t":"歡迎"},{"w":"well","t":"良好的；那麼"},{"w":"were","t":"be動詞複數過去式"},{"w":"west","t":"西方"},{"w":"wet","t":"潮濕的"},{"w":"what","t":"什麼"},{"w":"when","t":"什麼時候；當...時"},{"w":"where","t":"何處"},{"w":"whether","t":"是否"},{"w":"which","t":"哪一個"},{"w":"white","t":"白色的"},{"w":"who","t":"誰"},{"w":"whose","t":"誰的"},{"w":"why","t":"為什麼"},{"w":"wife","t":"妻子"},
+            {"w":"will","t":"將會"},{"w":"win","t":"贏得"},{"w":"wind","t":"風"},{"w":"window","t":"窗戶"},{"w":"windy","t":"多風的"},{"w":"winter","t":"冬天"},{"w":"wise","t":"有智慧的"},{"w":"wish","t":"希望；祝福"},{"w":"with","t":"和...一起；用..."},{"w":"without","t":"沒有"},{"w":"woman","t":"女人"},{"w":"wonderful","t":"極好的；精彩的"},{"w":"word","t":"字；單字"},{"w":"work","t":"工作"},{"w":"worker","t":"工作者；工人"},{"w":"world","t":"世界"},{"w":"worry","t":"擔心"},{"w":"would","t":"will過去式"},{"w":"write","t":"寫"},{"w":"writer","t":"作家"},
+            {"w":"wrong","t":"不對的"},{"w":"yeah","t":"是(yes)"},{"w":"year","t":"年"},{"w":"yellow","t":"黃色的"},{"w":"yes","t":"是"},{"w":"yesterday","t":"昨天"},{"w":"yet","t":"尚；未"},{"w":"you","t":"你；你們"},{"w":"young","t":"年輕的"},{"w":"your","t":"你的；你們的"},{"w":"yours","t":"你的/你們的東西"},{"w":"yourself","t":"你自己"},{"w":"yourselves","t":"你們自己"},{"w":"zoo","t":"動物園"}
+        ];
+
+        // Build 20-word groups
+        const vocabGroups = [];
+        const chunkSize = 20;
+        for (let i = 0; i < rawWords.length; i += chunkSize) {
+            const chunk = rawWords.slice(i, i + chunkSize);
+            const firstW = chunk[0].w;
+            const lastW = chunk[chunk.length - 1].w;
+            const groupId = Math.floor(i / chunkSize) + 1;
+            vocabGroups.push({
+                id: groupId,
+                name: `第 ${String(groupId).padStart(2, '0')} 組：${firstW} ~ ${lastW} (${chunk.length}字)`,
+                words: chunk
+            });
+        }
+
+        let currentGroupId = 1;
+        let currentWords = [];
+        let monopolyState = {
+            playerPos: 0,
+            coins: 500,
+            laps: 0,
+            canRoll: false
+        };
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            populateGroupDropdown();
+            loadGroup(1);
+        });
+
+        function populateGroupDropdown() {
+            const select = document.getElementById('groupSelect');
+            select.innerHTML = '';
+            vocabGroups.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g.id;
+                opt.textContent = g.name;
+                select.appendChild(opt);
+            });
+        }
+
+        function changeGroup(id) {
+            currentGroupId = parseInt(id);
+            loadGroup(currentGroupId);
+        }
+
+        function loadGroup(groupId) {
+            const group = vocabGroups.find(g => g.id === groupId);
+            if (!group) return;
+            currentWords = group.words;
+
+            document.getElementById('groupCardHeader').textContent = group.name;
+            document.getElementById('printGroupTitle').textContent = group.name;
+
+            renderCards();
+            initMonopoly();
+            renderPrintTable();
+            renderQuiz();
+        }
+
+        // --- 1. Flashcards Mode ---
+        function renderCards() {
+            const container = document.getElementById('cardsGrid');
+            container.innerHTML = '';
+            currentWords.forEach((wordObj, idx) => {
+                const card = document.createElement('div');
+                card.className = 'glass-card p-4 rounded-xl flex flex-col justify-between hover:border-indigo-400/50 transition cursor-pointer group';
+                card.onclick = () => speak(wordObj.w);
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-indigo-400">#${idx+1}</span>
+                        <button class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500 hover:text-white flex items-center justify-center transition">
+                            <i class="fa-solid fa-volume-high text-xs"></i>
+                        </button>
+                    </div>
+                    <div class="text-center py-3">
+                        <h3 class="text-xl font-black text-indigo-100 group-hover:text-amber-300 transition">${wordObj.w}</h3>
+                        <p class="text-sm font-semibold text-slate-300 mt-1">${wordObj.t}</p>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const cleanText = text.replace(/\(.*?\)/g, '').trim();
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.9;
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // --- 2. Monopoly Mode ---
+        function initMonopoly() {
+            monopolyState.playerPos = 0;
+            monopolyState.canRoll = false;
+            document.getElementById('mCoins').textContent = monopolyState.coins;
+            document.getElementById('mLaps').textContent = monopolyState.laps;
+
+            renderBoard();
+            nextMonopolyQuestion();
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('monopolyBoard');
+            board.innerHTML = '';
+
+            const tileCoords = [];
+            for (let c = 0; c < 6; c++) tileCoords.push({r: 0, c: c}); 
+            for (let r = 1; r < 6; r++) tileCoords.push({r: r, c: 5}); 
+            for (let c = 4; c >= 0; c--) tileCoords.push({r: 5, c: c}); 
+            for (let r = 4; r >= 1; r--) tileCoords.push({r: r, c: 0}); 
+
+            for (let r = 0; r < 6; r++) {
+                for (let c = 0; c < 6; c++) {
+                    const tileIdx = tileCoords.findIndex(coord => coord.r === r && coord.c === c);
+                    const tileEl = document.createElement('div');
+
+                    if (tileIdx !== -1) {
+                        const wordObj = currentWords[tileIdx];
+                        const isPlayer = (tileIdx === monopolyState.playerPos);
+
+                        tileEl.className = `board-tile ${isPlayer ? 'active-player' : ''}`;
+                        tileEl.style.gridRow = r + 1;
+                        tileEl.style.gridColumn = c + 1;
+
+                        tileEl.innerHTML = `
+                            <span class="text-[10px] text-slate-400 font-bold">#${tileIdx+1}</span>
+                            <span class="font-extrabold text-indigo-200 leading-tight">${wordObj ? wordObj.w : 'GO'}</span>
+                            ${isPlayer ? '<span class="absolute -top-2 -right-2 text-lg">🏃</span>' : ''}
+                        `;
+                    } else {
+                        if (r === 1 && c === 1) {
+                            tileEl.className = 'col-span-4 row-span-4 bg-slate-900/60 rounded-xl border border-indigo-500/20 p-4 flex flex-col items-center justify-center text-center';
+                            tileEl.style.gridRow = '2 / 6';
+                            tileEl.style.gridColumn = '2 / 6';
+                            tileEl.innerHTML = `
+                                <i class="fa-solid fa-dice-d20 text-4xl text-indigo-400 mb-2"></i>
+                                <span class="text-xs text-slate-300 font-bold">大富翁單字冒險樂園</span>
+                                <span class="text-[10px] text-slate-400 mt-1">答對單字 ➔ 解鎖甩骰 ➔ 步步前進繞圈領雙倍獎勵！</span>
+                            `;
+                        } else {
+                            continue;
+                        }
+                    }
+                    board.appendChild(tileEl);
+                }
+            }
+        }
+
+        function nextMonopolyQuestion() {
+            monopolyState.canRoll = false;
+            document.getElementById('btnRollDice').disabled = true;
+            document.getElementById('mDiceStatus').textContent = "請選擇正確的答案以解鎖甩骰！";
+
+            const qWord = currentWords[Math.floor(Math.random() * currentWords.length)];
+            document.getElementById('mQuestionText').textContent = qWord.w;
+
+            const options = [qWord.t];
+            while (options.length < 4) {
+                const randWord = currentWords[Math.floor(Math.random() * currentWords.length)];
+                if (!options.includes(randWord.t)) options.push(randWord.t);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            const optContainer = document.getElementById('mOptions');
+            optContainer.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full py-2.5 px-4 bg-slate-800 hover:bg-indigo-600/80 text-left text-sm font-semibold rounded-xl border border-slate-700 transition flex items-center justify-between group';
+                btn.innerHTML = `<span>${opt}</span> <i class="fa-solid fa-circle-check opacity-0 group-hover:opacity-100 text-emerald-400 transition"></i>`;
+                btn.onclick = () => {
+                    if (opt === qWord.t) {
+                        monopolyState.canRoll = true;
+                        document.getElementById('btnRollDice').disabled = false;
+                        document.getElementById('mDiceStatus').innerHTML = "<span class='text-emerald-400 font-bold'>🎉 答對了！點擊下方按鈕親手甩骰子！</span>";
+                        btn.className = 'w-full py-2.5 px-4 bg-emerald-600 text-white text-left text-sm font-semibold rounded-xl border border-emerald-400';
+                        playAudioTone(600, 'sine', 0.15);
+                    } else {
+                        document.getElementById('mDiceStatus').innerHTML = "<span class='text-rose-400 font-bold'>❌ 答錯囉！請再試試其他選項！</span>";
+                        btn.className = 'w-full py-2.5 px-4 bg-rose-900/50 text-rose-200 text-left text-sm font-semibold rounded-xl border border-rose-500';
+                        playAudioTone(200, 'square', 0.2);
+                    }
+                };
+                optContainer.appendChild(btn);
+            });
+        }
+
+        function rollDice() {
+            if (!monopolyState.canRoll) return;
+            monopolyState.canRoll = false;
+            document.getElementById('btnRollDice').disabled = true;
+
+            const diceRoll = Math.floor(Math.random() * 4) + 1;
+            let oldPos = monopolyState.playerPos;
+            monopolyState.playerPos = (monopolyState.playerPos + diceRoll) % 20;
+
+            if (monopolyState.playerPos < oldPos) {
+                monopolyState.laps += 1;
+                monopolyState.coins += 150;
+                document.getElementById('mLaps').textContent = monopolyState.laps;
+                document.getElementById('mCoins').textContent = monopolyState.coins;
+            }
+
+            renderBoard();
+            speak(currentWords[monopolyState.playerPos].w);
+
+            setTimeout(() => {
+                nextMonopolyQuestion();
+            }, 1200);
+        }
+
+        // --- 3. Gacha Mode ---
+        function drawGacha() {
+            if (monopolyState.coins < 50) {
+                alert("金幣不足！請至大富翁答題賺取金幣！");
+                return;
+            }
+            monopolyState.coins -= 50;
+            document.getElementById('gachaCoins').textContent = monopolyState.coins;
+            document.getElementById('mCoins').textContent = monopolyState.coins;
+
+            const item = currentWords[Math.floor(Math.random() * currentWords.length)];
+            const rareList = ['R 普通夥伴', 'SR 稀有冒險者', 'SSR 傳說魔法神獸'];
+            const rare = rareList[Math.floor(Math.random() * rareList.length)];
+
+            document.getElementById('gachaResult').innerHTML = `
+                <div class="glass-card p-4 rounded-2xl border-2 border-amber-400 text-center animate-bounce">
+                    <span class="text-xs font-bold text-amber-400">${rare}</span>
+                    <h3 class="text-2xl font-black text-white mt-1">${item.w}</h3>
+                    <p class="text-sm text-slate-300">${item.t}</p>
+                </div>
+            `;
+            playAudioTone(800, 'triangle', 0.3);
+        }
+
+        // --- 4. Quiz Mode ---
+        function renderQuiz() {
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = '';
+            currentWords.forEach((wordObj, idx) => {
+                const qDiv = document.createElement('div');
+                qDiv.className = 'p-4 rounded-xl bg-slate-800/60 border border-slate-700 space-y-2';
+
+                const distractors = [wordObj.t];
+                while (distractors.length < 4) {
+                    const r = currentWords[Math.floor(Math.random() * currentWords.length)].t;
+                    if (!distractors.includes(r)) distractors.push(r);
+                }
+                distractors.sort(() => Math.random() - 0.5);
+
+                let optionsHTML = '';
+                distractors.forEach(opt => {
+                    optionsHTML += `
+                        <label class="flex items-center gap-2 p-2 bg-slate-900/50 rounded-lg hover:bg-indigo-600/30 cursor-pointer border border-slate-800">
+                            <input type="radio" name="q_${idx}" value="${opt}" onchange="checkQuizScore()" class="text-indigo-500">
+                            <span class="text-sm font-medium text-slate-200">${opt}</span>
+                        </label>
+                    `;
+                });
+
+                qDiv.innerHTML = `
+                    <div class="font-bold text-indigo-300">#${idx+1}. <span class="text-white text-lg ml-1">${wordObj.w}</span></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">${optionsHTML}</div>
+                `;
+                container.appendChild(qDiv);
+            });
+        }
+
+        function checkQuizScore() {
+            let score = 0;
+            currentWords.forEach((wordObj, idx) => {
+                const selected = document.querySelector(`input[name="q_${idx}"]:checked`);
+                if (selected && selected.value === wordObj.t) {
+                    score++;
+                }
+            });
+            document.getElementById('quizScore').textContent = `得分：${score} / 20`;
+        }
+
+        // Print View
+        function renderPrintTable() {
+            const tbody = document.getElementById('printTableBody');
+            tbody.innerHTML = '';
+            currentWords.forEach((w, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border border-gray-400 p-2 text-center font-bold">${i+1}</td>
+                    <td class="border border-gray-400 p-2 font-semibold">${w.w}</td>
+                    <td class="border border-gray-400 p-2">${w.t}</td>
+                    <td class="border border-gray-400 p-2 text-center text-gray-400 text-xs">□ 精熟  □ 需複習</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Mode Switching
+        function switchMode(mode) {
+            document.querySelectorAll('.mode-section').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.mode-tab').forEach(el => {
+                el.classList.remove('bg-indigo-600', 'text-white');
+                el.classList.add('bg-slate-800', 'text-slate-300');
+            });
+
+            document.getElementById(`mode-${mode}`).classList.remove('hidden');
+            const btn = document.getElementById(`btn-${mode}`);
+            if (btn) {
+                btn.classList.remove('bg-slate-800', 'text-slate-300');
+                btn.classList.add('bg-indigo-600', 'text-white');
+            }
+        }
+
+        // Audio synthesizer
+        function playAudioTone(freq, type, duration) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch(e) {}
+        }
+    </script>
+</body>
+</html>
